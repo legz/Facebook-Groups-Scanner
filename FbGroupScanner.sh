@@ -1,23 +1,22 @@
 #!/bin/bash
 
-
 ### Script init
 init () {
 	echo -e "$(date "+%D-%T") - Start"
 	rm -f *.tmp
+	rm -f final.txt
+	
 	# Account settings
 	login="XXX"	# ie:name@gmail.com
 	password="XXX"
 
 	# Groups delcaration
 	declare -gA aGroups
-	aGroups[MoulinexCuisineCompanion]="Idées recettes, Cuisine Companion"
-	aGroups[cookeojoieetbonnehumeur]="Recettes Cookeo dans la joie et la bonne humeur"
-	aGroups[1714394322148881]="Moulinex Companion , Recette, Photos, Cuisine Et Partage A Vos Fourneaux"
-	aGroups[ideesrecettescookeo]="Idées recettes COOKEO"
+	aGroups[facebook_group1_id]="Facebook group 1 name"
+	aGroups[facebook_group2_id]="Facebook group 2 name"
 
 	# Keywords declaration
-	aKeywords=('application' 'vocal')
+	aKeywords=('keyword 1' 'keyword 2')
 
 	# Set a proper user-agent for the script
 	userAgent="Facebook Groups Scanner/1.0 (+https://github.com/legz/Facebook-Groups-Scanner)"
