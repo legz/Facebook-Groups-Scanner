@@ -11,23 +11,25 @@ init () {
 	userAgent="Facebook Groups Scanner/1.0 (+https://github.com/legz/Facebook-Groups-Scanner)"
 }
 
-
 ### Functions
 scan () {
-	curl -s --cookie cookies.txt --cookie-jar cookies.txt "https://www.facebook.com" > /dev/null
-	curl -s --cookie cookies.txt --cookie-jar cookies.txt -A "$userAgent" -d "email=$login&pass=$password&timezone=-60&locale=en_US&login_source=login_bluebar" "https://www.facebook.com/login.php?login_attempt=1&lwv=110" > login.html.tmp
-	curl -s --cookie cookies.txt --cookie-jar cookies.txt -A "$userAgent" "https://www.facebook.com/groups/1714394322148881/search/?query=application&filters_rp_chrono_sort=%7B%22name%22%3A%22chronosort%22%2C%22args%22%3A%22%22%7D" > group.html.tmp
+	# Start a session (@TODO : use cookie without login if the cookie is still OK)
+	curl -s -m 10 --cookie cookies.txt --cookie-jar cookies.txt "https://www.facebook.com" > /dev/null
+	curl -s -m 10 --cookie cookies.txt --cookie-jar cookies.txt -A "$userAgent" -d "email=$login&pass=$password&timezone=-60&locale=en_US&login_source=login_bluebar" "https://www.facebook.com/login.php?login_attempt=1&lwv=110" > login.html.tmp
+	
+	# Search in group for the keyword	
+	for keyword in ${aKeywords[@]}; do
+		echo -e "$(date "+%D-%T") - Search for '$keyword'"
+		curl -s -m 10 --cookie cookies.txt --cookie-jar cookies.txt -A "$userAgent" "https://www.facebook.com/groups/1714394322148881/search/?query=$keyword&filters_rp_chrono_sort=%7B%22name%22%3A%22chronosort%22%2C%22args%22%3A%22%22%7D" > group.html.tmp
+		cat group.html.tmp | grep -ioP "(?<=(5;\">|\"1\">))[A-Za-z].{0,300}?$keyword.{0,500}?(?=<\/span>)" >> output.tmp		# -i for case insensitive
+	done
 
-	cat group.html.tmp | grep -ioP '(?<=(5;">|"1">))[A-Za-z].{0,300}?application.{0,500}?(?=<\/span>)' > output.tmp		# -i for case insensitive
-	cat output.tmp | sed "s/<\/a>&nbsp;<span>/ : /g" > outputClean1.tmp		# Use some tmp files because of how bash script works (can't cat and output in the same file if too quick)
-	cat outputClean1.tmp | sed "s/<a href.\+>\(.\+\)<\/a>/[\1]/g" > outputClean2.tmp
-	cat outputClean2.tmp | sed "s/<span .\+>//g" > outputClean3.tmp
-	cat outputClean3.tmp | perl -MHTML::Entities -pe 'decode_entities($_);' > output.tmp
+	cat output.tmp | sed "s/<\/a>&nbsp;<span>/ : /g" | sed "s/<a href.\+>\(.\+\)<\/a>/[\1]/g" | sed "s/<span .\+>//g" > outputClean.tmp		# Use another tmp files because of how bash script works (can't cat and output in the same file if too quick)
+	cat outputClean.tmp | perl -MHTML::Entities -pe 'decode_entities($_);' > output.tmp
 
 	echo "Results:"
 	cat output.tmp
 }
-
 
 ### Run script
 init
