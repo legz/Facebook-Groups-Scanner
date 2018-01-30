@@ -25,10 +25,16 @@ init () {
 
 ### Functions
 scan () {
-	# Start a session (@TODO : use cookie without login if the cookie is still OK)
-	curl -s -m 10 --cookie cookies.txt --cookie-jar cookies.txt "https://www.facebook.com" > /dev/null
-	curl -s -m 10 --cookie cookies.txt --cookie-jar cookies.txt -A "$userAgent" -d "email=$login&pass=$password&timezone=-60&locale=en_US&login_source=login_bluebar" "https://www.facebook.com/login.php?login_attempt=1&lwv=110" > login.html.tmp
-	
+	# Set cookie (if needed)
+	expirationDate=0
+	today=$(date "+%s")
+	if [[ -f cookies.txt ]]; then expirationDate=$(cat cookies.txt | grep -oP "[0-9]*(?=\tc_user\t)"); fi
+	if [[ $today -gt $expirationDate ]]; then
+		echo -e "$(date "+%D-%T") - Set/update cookies"
+		curl -s -m 10 --cookie cookies.txt --cookie-jar cookies.txt "https://www.facebook.com" > /dev/null
+		curl -s -m 10 --cookie cookies.txt --cookie-jar cookies.txt -A "$userAgent" -d "email=$login&pass=$password&timezone=-60&locale=en_US&login_source=login_bluebar" "https://www.facebook.com/login.php?login_attempt=1&lwv=110" > login.html.tmp
+	fi
+
 	# Groups loop
 	for group in "${!aGroups[@]}"; do
 		echo -e "$(date "+%D-%T") - Group: ${aGroups[$group]}"
@@ -58,6 +64,7 @@ clean () {
 
 ### Run script
 init
+# TODO : options for keywords
 # while getopts ":k:h" optname; do
 #     case $optname in
 #       k)	keyword=$OPTARG ;;
