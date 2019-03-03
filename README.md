@@ -65,7 +65,7 @@ aKeywords=('keyword 1' 'keyword 2')
 
    
 ## TODO
-- More data (author name, publication date, link to posts...)
-- Consistent data between comments and posts
-- Better output format (option for RSS maybe?)
+- Insert data into a database (it will be much more easy to process report file that way)
+- More data (author name, ~~publication date,~~ ~~link to posts~~, number of reactions, number of comment)
+- ~~Better output format~~ (option for RSS maybe?)
 - 'Diff' option to add only new entry (RSS in mind again)
