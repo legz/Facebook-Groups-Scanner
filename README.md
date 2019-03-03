@@ -61,31 +61,9 @@ aKeywords=('keyword 1' 'keyword 2')
     01/31/18-00:02:27 - End
 ```
 
-2. Read the results:
-```
-> cat final.txt
-    Group: Group 1 name
-    Keyword: keyword 1
-    ...
-    ...
+2. Read the results: Open the `report-*-*.html` file
 
-    Keyword: keyword 2
-    ...
-    ...
-
-    ---
-    Group: Group 2 name
-    Keyword: keyword 1
-    ...
-    ...
-
-    Keyword: keyword 2
-    ...
-    ...
-
-    ---
-```
-
+   
 ## TODO
 - More data (author name, publication date, link to posts...)
 - Consistent data between comments and posts

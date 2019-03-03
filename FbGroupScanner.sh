@@ -1,22 +1,25 @@
 #!/bin/bash
 
+# Account settings
+login="XXX"	# ie:name%40gmail.com (yes, %40 instead of @)
+password="XXX"
+
+### Parameters
+postClassId="_6-e5"
+
 ### Script init
 init () {
 	echo -e "$(date "+%D-%T") - Start"
-	rm -f *.tmp
-	rm -f final.txt
+	reportDate=$(date "+%Y%m%d-%H%M")
 	
-	# Account settings
-	login="XXX"	# ie:name@gmail.com
-	password="XXX"
-
 	# Groups delcaration
 	declare -gA aGroups
 	aGroups[facebook_group1_id]="Facebook group 1 name"
 	aGroups[facebook_group2_id]="Facebook group 2 name"
 
 	# Keywords declaration
-	aKeywords=('keyword 1' 'keyword 2')
+	# example: aKeywords=('keyword1' 'keyword2')
+	aKeywords=('application' 'vocal')
 
 	# Set a proper user-agent for the script
 	userAgent="Facebook Groups Scanner/1.0 (+https://github.com/legz/Facebook-Groups-Scanner)"
@@ -31,34 +34,39 @@ scan () {
 	if [[ $today -gt $expirationDate ]]; then
 		echo -e "$(date "+%D-%T") - Set/update cookies"
 		curl -s -m 10 --cookie cookies.txt --cookie-jar cookies.txt "https://www.facebook.com" > /dev/null
-		curl -s -m 10 --cookie cookies.txt --cookie-jar cookies.txt -A "$userAgent" -d "email=$login&pass=$password&timezone=-60&locale=en_US&login_source=login_bluebar" "https://www.facebook.com/login.php?login_attempt=1&lwv=110" > login.html.tmp
+		curl -s -m 10 --cookie cookies.txt --cookie-jar cookies.txt -A "$userAgent" -d "email=$login&pass=$password&timezone=-60&locale=en_US&login_source=login_bluebar" --compressed 'https://www.facebook.com/login/device-based/regular/login/?login_attempt=1&lwv=111' > login1.tmp
+		curl -s -m 10 --cookie cookies.txt --cookie-jar cookies.txt -A "$userAgent" --compressed 'https://www.facebook.com/' > login2.tmp
 	fi
+
+	# Init report file
+	echo '<html> <head> <meta charset="UTF-8"> </head> <body>' > report-$reportDate.html
+	echo "<h1>Group search report - $(date "+%d/%m/%y")</h1>" >> report-$reportDate.html
 
 	# Groups loop
 	for group in "${!aGroups[@]}"; do
 		echo -e "$(date "+%D-%T") - Group: ${aGroups[$group]}"
-		echo "Group: ${aGroups[$group]}" >> final.txt
+		echo "<h2>Group: ${aGroups[$group]}<a href=\"https://www.facebook.com/groups/$group/\">+</a></h2>" >> report-$reportDate.html
 
 		# Keywords loop
 		for keyword in ${aKeywords[@]}; do
+			keywordSearchUrl="https://www.facebook.com/groups/$group/search/?query=${keyword}&epa=FILTERS&filters=eyJycF9jaHJvbm9fc29ydCI6IntcIm5hbWVcIjpcImNocm9ub3NvcnRcIixcImFyZ3NcIjpcIlwifSJ9"
 			echo -e "$(date "+%D-%T") - Search for '$keyword'"
-			echo "Keyword: $keyword" >> final.txt
-			curl -s -m 10 --cookie cookies.txt --cookie-jar cookies.txt -A "$userAgent" "https://www.facebook.com/groups/$group/search/?query=$keyword&filters_rp_chrono_sort=%7B%22name%22%3A%22chronosort%22%2C%22args%22%3A%22%22%7D" > group.html.tmp
-			cat group.html.tmp | grep -ioP "(?<=(5;\">|\"1\">))[A-Za-z].{0,300}?$keyword.{0,500}?(?=<\/span>)" > output.tmp		# -i for case insensitive
-			clean output.tmp >> final.txt
-			echo " " >> final.txt 
-		done
-		echo "---" >> final.txt 
-	done
-}
+			echo "<h3>Keyword: $keyword<a href=\"$keywordSearchUrl\">+</a></h3>" >> report-$reportDate.html
+			curl -s -m 10 --cookie cookies.txt --cookie-jar cookies.txt -A "$userAgent" "$keywordSearchUrl" > group.html.tmp
+			cat group.html.tmp | grep -ioP "${postClassId}.{0,6000}" > extract_post.tmp		# -i for case insensitive
 
-# Basic function to clean output
-clean () {
-	cat $1 | sed "s/<\/a>&nbsp;<span>/ : /g" \
-		   | sed "s/<a href.\+>\(.\+\)<\/a>/[\1]/g" \
-		   | sed "s/<span .\+>//g" \
-		   | sed "s/<br \/>//g" \
-		   | perl -MHTML::Entities -pe 'decode_entities($_);'
+			while read post; do
+				postPermalink=$(echo $post | grep -ioP "(?<=a href=\").{1,100}permalink.{1,100}(?=\" )")
+				postDate=$(echo $post | grep -ioP "(?<=$postPermalink).{1,200}>.{1,20}(?=</a>)" | cut -d">" -f2-)
+				postText=$(echo $post | grep -ioP "(?<=$postPermalink).{1,1000}?(?=</div></div>)" | rev | cut -d">" -f1 | rev) # .{1,1000}? : the "?" is for "the smallest possble match"
+				echo "<div>" >> report-$reportDate.html
+				echo "<a href=\"https://facebook.com$postPermalink\">$postDate</a>" >> report-$reportDate.html
+				echo ": $postText" >> report-$reportDate.html
+				echo "</div>" >> report-$reportDate.html
+			done < extract_post.tmp
+		done # end keywords loop
+	done # end groups loop
+	echo "</body></html>">> report-$reportDate.html
 }
 
 ### Run script
@@ -78,4 +86,6 @@ init
 
 scan
 
+rm -f *.tmp
 echo -e "$(date "+%D-%T") - End"
+
